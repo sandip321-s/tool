@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Translate videos into any language easily with our video language translation tool.">
+  <meta name="keywords" content="video translation, language translation, translate video, multilingual video">
+  <meta name="author" content="sandip">
+  <title>Video Language Translator</video lenguage translater>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <h1>Video Language Translator</h1>
+    <p>Translate videos into any language effortlessly!</p>
+  </header>
+
+  <main>
+    <section class="upload-section">
+      <h2>Upload Your Video</h2>
+      <form id="uploadForm">
+        <input type="file" id="videoFile" accept="video/*" required>
+        <label for="sourceLang">Source Language:</label>
+        <select id="sourceLang">
+          <option value="en">English</option>
+          <option value="es">Spanish</option>
+          <option value="fr">French</option>
+          <option value="de">German</option>
+          <!-- Add more languages -->
+        </select>
+        <label for="targetLang">Target Language:</label>
+        <select id="targetLang">
+          <option value="es">Spanish</option>
+          <option value="en">English</option>
+          <option value="fr">French</option>
+          <option value="de">German</option>
+          <!-- Add more languages -->
+        </select>
+        <button type="submit">Translate Video</button>
+      </form>
+    </section>
+
+    <section class="result-section">
+      <h2>Translated Video</h2>
+      <div id="translatedVideo"></div>
+    </section>
+  </main>
+
+  <footer>
+    <p>&copy; 2023 Your Company Name. All rights reserved.</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
+
+/* styles.css */
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #f4f4f9;
+  color: #333;
+}
+
+header {
+  background-color: #6200ea;
+  color: white;
+  padding: 20px;
+  text-align: center;
+}
+
+main {
+  padding: 20px;
+}
+
+.upload-section, .result-section {
+  background: white;
+  padding: 20px;
+  margin: 20px 0;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+}
+
+label {
+  margin-top: 10px;
+}
+
+input, select, button {
+  padding: 10px;
+  margin-top: 5px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+button {
+  background-color: #6200ea;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #3700b3;
+}
+
+footer {
+  text-align: center;
+  padding: 10px;
+  background-color: #333;
+  color: white;
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+}
+
+// script.js
+document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const videoFile = document.getElementById('videoFile').files[0];
+  const sourceLang = document.getElementById('sourceLang').value;
+  const targetLang = document.getElementById('targetLang').value;
+
+  const formData = new FormData();
+  formData.append('video', videoFile);
+  formData.append('sourceLang', sourceLang);
+  formData.append('targetLang', targetLang);
+
+  try {
+    const response = await fetch('/translate', {
+      method: 'POST',
+      body: formData,
+    });
+
+    const data = await response.json();
+    if (data.translatedVideoUrl) {
+      document.getElementById('translatedVideo').innerHTML = `
+        <video controls>
+          <source src="${data.translatedVideoUrl}" type="video/mp4">
+          Your browser does not support the video tag.
+        </video>
+      `;
+    } else {
+      alert('Translation failed. Please try again.');
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    alert('An error occurred. Please try again.');
+  }
+});
+
+# app.py
+from flask import Flask, request, jsonify
+import os
+from werkzeug.utils import secure_filename
+from deep_translator import GoogleTranslator  # Example translation library
+
+app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = 'uploads'
+app.config['ALLOWED_EXTENSIONS'] = {'mp4', 'avi', 'mov'}
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
+
+@app.route('/translate', methods=['POST'])
+def translate_video():
+    if 'video' not in request.files:
+        return jsonify({'error': 'No video file provided'}), 400
+
+    video_file = request.files['video']
+    source_lang = request.form.get('sourceLang', 'en')
+    target_lang = request.form.get('targetLang', 'es')
+
+    if video_file and allowed_file(video_file.filename):
+        filename = secure_filename(video_file.filename)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        video_file.save(filepath)
+
+        # Perform translation (example: translate subtitles or audio)
+        translated_text = GoogleTranslator(source=source_lang, target=target_lang).translate("Sample text to translate")
+
+        # Save translated video (this is a placeholder; you need to implement video processing)
+        translated_video_url = f"/uploads/{filename}"
+
+        return jsonify({'translatedVideoUrl': translated_video_url})
+
+    return jsonify({'error': 'Invalid file type'}), 400
+
+if __name__ == '__main__':
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+    app.run(debug=True)
